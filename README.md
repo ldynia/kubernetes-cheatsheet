@@ -216,7 +216,7 @@ $ kubectl describe pod <podname>
 $ kubectl get <resources>
 
 # Describe pods
-$ kubectl get pod alpine
+$ kubectl get pod alpine --output=wide
 $ kubectl get pod alpine --show-labels
 
 # Logs images
@@ -256,8 +256,12 @@ $ kubectl get deployments nginx --output=yaml --export
 ## Service
 
 ```bash
-# Create service
+# Create service type of nodeport & clusterip
 $ kubectl create service nodeport nginx --tcp=80
+$ kubectl create service clusterip nginx --tcp=80
+$ kubectl expose deployment nginx --port=80 --type=NodePort
+$ kubectl expose deployment nginx --port=80 --type=ClusterIP
+
 
 $ kubectl get svc nginx --show-labels
 NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE     LABELS
