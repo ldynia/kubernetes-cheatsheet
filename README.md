@@ -237,7 +237,6 @@ $ kubectl create deployment nginx --image=nginx
 
 # Get Deploymnet
 $ kubectl get deployment --show-labels
-$ kubectl get deployment nginx --output=yaml
 
 # Short notation for fetching multiple resources
 $ kubectl get deploy,rs,po --show-labels
@@ -250,6 +249,8 @@ replicaset.extensions/nginx-65f88748fd   1         1         1       24m   app=n
 NAME                         READY   STATUS    RESTARTS   AGE   LABELS
 pod/nginx-65f88748fd-r9t47   1/1     Running   0          24m   app=nginx,pod-template-hash=65f88748fd
 
+# Print yamla deployment file
+$ kubectl get deployments nginx --output=yaml --export=true
 ```
 
 ## Service
@@ -261,6 +262,10 @@ $ kubectl create service nodeport nginx --tcp=80
 $ kubectl get svc nginx --show-labels
 NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE     LABELS
 nginx   NodePort   10.98.29.213   <none>        80:31700/TCP   3m58s   app=nginx
+
+# Print yamla deployment file
+$ kubectl get svc nginx --output=yaml --export=true
+
 
 $ curl localhost:31700
 $ curl http://192.168.123.130:31700/
