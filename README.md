@@ -250,7 +250,7 @@ NAME                         READY   STATUS    RESTARTS   AGE   LABELS
 pod/nginx-65f88748fd-r9t47   1/1     Running   0          24m   app=nginx,pod-template-hash=65f88748fd
 
 # Print yamla deployment file
-$ kubectl get deployments nginx --output=yaml --export=true
+$ kubectl get deployments nginx --output=yaml --export
 ```
 
 ## Service
@@ -264,7 +264,7 @@ NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE     LABELS
 nginx   NodePort   10.98.29.213   <none>        80:31700/TCP   3m58s   app=nginx
 
 # Print yamla deployment file
-$ kubectl get svc nginx --output=yaml --export=true
+$ kubectl get svc nginx --output=yaml --export
 
 
 $ curl localhost:31700
