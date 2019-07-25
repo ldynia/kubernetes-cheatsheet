@@ -209,6 +209,9 @@ $ kubectl label pod alpine created_by-
 ## Debugging
 
 ```bash
+# Describe pod
+$ kubectl describe pod <podname>
+
 # Generic way
 $ kubectl get <resources>
 
@@ -235,18 +238,6 @@ $ kubectl create deployment nginx --image=nginx
 # Get Deploymnet
 $ kubectl get deployment --show-labels
 $ kubectl get deployment nginx --output=yaml
-
-$ kubectl get deployments
-NAME    READY   UP-TO-DATE   AVAILABLE   AGE
-nginx   1/1     1            1           16m
-
-$ kubectl get replicasets
-NAME               DESIRED   CURRENT   READY   AGE
-nginx-65f88748fd   1         1         1       16m
-
-$ kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-nginx-65f88748fd-r9t47   1/1     Running   0          16m
 
 # Short notation for fetching multiple resources
 $ kubectl get deploy,rs,po --show-labels
@@ -275,5 +266,4 @@ $ curl localhost:31700
 $ curl http://192.168.123.130:31700/
 $ curl http://192.168.123.131:31700/
 $ curl http://192.168.123.132:31700/
-
 ```
