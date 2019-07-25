@@ -209,6 +209,7 @@ $ kubectl label pod alpine created_by-
 ## Debugging
 
 ```bash
+# Generic way
 $ kubectl get <resources>
 
 # Describe pods
@@ -223,4 +224,26 @@ $ kubectl logs -p alpine
 # Hook into alpine container
 $ echo "Writing to stdout" >> /proc/1/fd/1
 $ echo "Writing to stdout" >> /dev/stdout
+```
+
+## Deployment
+
+```bash
+$ kubectl create deployment nginx --image=nginx
+$ kubectl get deployment nginx --output=yaml
+```
+
+## Service
+
+```bash
+$ kubectl create service nodeport nginx --tcp=80
+
+$ kubectl get svc nginx --show-labels
+NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE     LABELS
+nginx   NodePort   10.98.29.213   <none>        80:31700/TCP   3m58s   app=nginx
+
+$ curl localhost:31700
+$ curl http://192.168.123.130:31700/
+$ curl http://192.168.123.131:31700/
+$ curl http://192.168.123.132:31700/
 ```
