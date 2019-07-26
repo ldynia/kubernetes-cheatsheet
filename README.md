@@ -1,9 +1,9 @@
 # Kubernetes Cheatsheet
 
 ## References
-[kubectl cheatsheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-[kubernetes by example](http://kubernetesbyexample.com/)
-
+* [kubernetes cluster (virtualbox + ansible)](vagrant-ansible-k8-centos)
+* [kubectl cheatsheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+* [kubernetes by example](http://kubernetesbyexample.com/)
 
 ```bash
 $ kubectl
@@ -259,6 +259,7 @@ $ kubectl get deployments nginx --output=yaml --export
 # Create service type of nodeport & clusterip
 $ kubectl create service nodeport nginx --tcp=80
 $ kubectl create service clusterip nginx --tcp=80
+
 $ kubectl expose deployment nginx --port=80 --type=NodePort
 $ kubectl expose deployment nginx --port=80 --type=ClusterIP
 
@@ -272,7 +273,108 @@ $ kubectl get svc nginx --output=yaml --export
 
 
 $ curl localhost:31700
-$ curl http://192.168.123.130:31700/
-$ curl http://192.168.123.131:31700/
-$ curl http://192.168.123.132:31700/
+$ curl http://192.168.234.230:31700/
+$ curl http://192.168.234.231:31700/
+$ curl http://192.168.234.232:31700/
+```
+
+## Ingress
+
+To expose application to public you have to have installed [traefik.io](https://docs.traefik.io/user-guide/kubernetes/). Additionally, your `/etc/hosts` should point to one of the IP of the cluster. e.g.
+
+```bash
+192.168.234.230 app.k8
+192.168.234.231 app.k8
+192.168.234.232 app.k8
+```
+
+```yaml
+# nginx.ingress.yaml
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nginx
+spec:
+  rules:
+  - host: app.k8
+    http:
+      paths:
+      - backend:
+          serviceName: nginx
+          servicePort: 80
+```
+
+```bash
+$ kubectl apply -f nginx.ingress.yaml --dry-run
+$ kubectl apply -f nginx.ingress.yaml
+```
+
+## Volumes
+
+**index.html**
+```bash
+# On master node reproduce these structure
+$ tree /nfs/www/demo
+├── deployment.yaml
+└── html
+    └── index.html
+```
+
+```html
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Welcome to nginx!</title>
+  <style>
+      body {
+          width: 35em;
+          margin: 0 auto;
+          font-family: Tahoma, Verdana, Arial, sans-serif;
+      }
+  </style>
+</head>
+
+<body>
+	<h1>Hello Volumes!</h1>
+</body>
+
+</html>
+```
+
+**deployment.yaml**
+```yaml
+---
+apiVersion: extensions/v2beta1
+kind: Deployment
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: html-volume
+      volumes:
+       - name: html-volume
+         hostPath:
+           path: /nfs/www/demo/html
+           type: Directory
+```
+
+```bash
+$ kubectl apply -f deployment.yaml
 ```
