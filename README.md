@@ -181,6 +181,8 @@ Run pod in foreground.
 $ kubectl run alpine -it --image=alpine --restart=Never
 $ kubectl run alpine -it --image=alpine --restart=Never --command -- hostname -i
 
+$ kubectl delete pod $(kubectl get pods | grep Completed | awk '{print $1}')
+
 ```
 Run pod in background.
 
@@ -201,6 +203,7 @@ Label pods.
 ```bash
 # Add label
 $ kubectl label pod alpine created_by=ludd
+$ kubectl get pods --show-labels
 
 # Remove label
 $ kubectl label pod alpine created_by-
@@ -209,11 +212,11 @@ $ kubectl label pod alpine created_by-
 ## Debugging
 
 ```bash
-# Describe pod
-$ kubectl describe pod <podname>
-
 # Generic way
 $ kubectl get <resources>
+
+# Describe pod
+$ kubectl describe pod <podname>
 
 # Describe pods
 $ kubectl get pod alpine --output=wide
@@ -227,6 +230,11 @@ $ kubectl logs -p alpine
 # Hook into alpine container
 $ echo "Writing to stdout" >> /proc/1/fd/1
 $ echo "Writing to stdout" >> /dev/stdout
+```
+
+## Delete pod
+```bash
+$ kubectl delete pod alpine
 ```
 
 ## Deployment
@@ -260,9 +268,9 @@ $ kubectl get deployments nginx --output=yaml --export
 $ kubectl create service nodeport nginx --tcp=80
 $ kubectl create service clusterip nginx --tcp=80
 
+# Crete service using expose command
 $ kubectl expose deployment nginx --port=80 --type=NodePort
 $ kubectl expose deployment nginx --port=80 --type=ClusterIP
-
 
 $ kubectl get svc nginx --show-labels
 NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE     LABELS
@@ -271,16 +279,18 @@ nginx   NodePort   10.98.29.213   <none>        80:31700/TCP   3m58s   app=nginx
 # Print yamla deployment file
 $ kubectl get svc nginx --output=yaml --export
 
-
 $ curl localhost:31700
 $ curl http://192.168.234.230:31700/
 $ curl http://192.168.234.231:31700/
 $ curl http://192.168.234.232:31700/
+
+$ kubectl delete svc nginx
+$ kubectl delete deploy nginx
 ```
 
 ## Ingress
 
-To expose application to public you have to have installed [traefik.io](https://docs.traefik.io/user-guide/kubernetes/). Additionally, your `/etc/hosts` should point to one of the IP of the cluster. e.g.
+To expose application to public you have to have installed [traefik.io](https://docs.traefik.io/user-guide/kubernetes/). Additionally, your machine's host file `/etc/hosts` should point to one of the IPs of the cluster. e.g.
 
 ```bash
 192.168.234.230 app.k8
@@ -288,39 +298,17 @@ To expose application to public you have to have installed [traefik.io](https://
 192.168.234.232 app.k8
 ```
 
-```yaml
-# nginx.ingress.yaml
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: nginx
-spec:
-  rules:
-  - host: app.k8
-    http:
-      paths:
-      - backend:
-          serviceName: nginx
-          servicePort: 80
-```
-
+Reproduce these structure on master node.
 ```bash
-$ kubectl apply -f nginx.ingress.yaml --dry-run
-$ kubectl apply -f nginx.ingress.yaml
-```
-
-## Volumes
-
-**index.html**
-```bash
-# On master node reproduce these structure
 $ tree /nfs/www/demo
 ├── deployment.yaml
+├── ingress.yaml
+├── svc.yaml
 └── html
     └── index.html
 ```
 
+**index.html**
 ```html
 <!DOCTYPE html>
 <html>
@@ -343,10 +331,10 @@ $ tree /nfs/www/demo
 </html>
 ```
 
-**deployment.yaml**
+**deployment.yaml** with volume.
 ```yaml
 ---
-apiVersion: extensions/v2beta1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   labels:
@@ -371,10 +359,52 @@ spec:
       volumes:
        - name: html-volume
          hostPath:
-           path: /nfs/www/demo/html
+           path: /mnt/nfs/www/demo/html
            type: Directory
 ```
 
+**service.yaml**
+```yaml
+# Create service
+# kubectl expose deployment nginx --port=80 --type=ClusterIP
+# kubectl expose deployment nginx --port=80 --type=NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    run: nginx
+  type: ClusterIP
+```
+
+**ingress.yaml**
+```yaml
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nginx
+spec:
+  rules:
+  - host: app.k8
+    http:
+      paths:
+      - backend:
+          serviceName: nginx
+          servicePort: 80
+```
+
+
 ```bash
 $ kubectl apply -f deployment.yaml
+$ kubectl apply -f service.yaml
+$ kubectl apply -f ingress.yaml
 ```
