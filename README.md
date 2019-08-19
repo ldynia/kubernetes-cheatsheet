@@ -75,6 +75,12 @@ Use "kubectl <command> --help" for more information about a given command.
 Use "kubectl options" for a list of global command-line options (applies to all commands).
 ```
 
+Nodes info
+```bash
+$ kubectl version
+$ kubectl get nodes -o json | jq .items[].status.nodeInfo
+```
+
 ```bash
 $ kubectl api-resources
 NAME                              SHORTNAMES   APIGROUP                       NAMESPACED   KIND
@@ -173,12 +179,37 @@ FIELDS:
      https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
  ```
 
+
+## Debugging
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: phenex
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28
+    command:
+      - sleep
+      - "3600"
+    imagePullPolicy: IfNotPresent
+  restartPolicy: Always
+```
+
+```bash
+$ kubectl exec -it busybox /bin/sh
+```
+
 ## Pod
 
 Run pod in foreground.
 ```bash
 # Busybox image
 $ kubectl run alpine -it --image=alpine --restart=Never
+$ kubectl --namespace=default run alpine -it --image=alpine --restart=Never
 $ kubectl run alpine -it --image=alpine --restart=Never --command -- hostname -i
 
 $ kubectl delete pod $(kubectl get pods | grep Completed | awk '{print $1}')
@@ -290,7 +321,8 @@ $ kubectl delete deploy nginx
 
 ## Ingress
 
-To expose application to public you have to have installed [traefik.io](https://docs.traefik.io/user-guide/kubernetes/). Additionally, your machine's host file `/etc/hosts` should point to one of the IPs of the cluster. e.g.
+To expose application to public you have to have installed [traefik.io](https://docs.traefik.io/user-guide/kubernetes/).
+Additionally, your machine's host file `/etc/hosts` should point to one of the IPs of the cluster. e.g.
 
 ```bash
 192.168.234.230 app.k8
@@ -299,6 +331,7 @@ To expose application to public you have to have installed [traefik.io](https://
 ```
 
 Reproduce these structure on master node.
+
 ```bash
 $ tree /nfs/www/demo
 ├── deployment.yaml
@@ -408,3 +441,64 @@ $ kubectl apply -f deployment.yaml
 $ kubectl apply -f service.yaml
 $ kubectl apply -f ingress.yaml
 ```
+
+
+# Labels
+
+Show labels.
+```bash
+$ kubectl get nodes
+NAME        STATUS   ROLES    AGE     VERSION   LABELS
+master      Ready    master   6h16m   v1.15.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+web01       Ready    <none>   6h15m   v1.15.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=web01,kubernetes.io/os=linux
+compute01   Ready    <none>   6h15m   v1.15.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=compute01,kubernetes.io/os=linux
+```
+
+Label nodes
+```bash
+$ kubectl label nodes web01 type=web
+node/web01 labeled
+
+$ kubectl label nodes compute01 type=compute
+node/compute01 labeled
+```
+
+Delete labels
+```bash
+$ kubectl label nodes web01 type-
+$ kubectl label nodes compute01 type-
+```
+
+# Taints
+
+Show taints
+```bash
+$ kubectl get nodes -o json | jq .items[].spec
+$ kubectl get nodes -o json | jq .items[].spec.taints
+```
+
+Add taints
+```bash
+$ kubectl taint node compute01 type=compute:NoSchedule
+```
+
+Delete taints
+```bash
+$ kubectl taint node compute01 type-
+```
+
+
+# Namespace
+```bash
+$ kubectl config view
+$ kubectl create ns phenex
+
+$ kubectl --namespace=phenex run nginx --image=nginx
+$ kubectl --namespace=phenex get pods
+
+$ kubectl config set-context $(kubectl config current-context) --namespace=phenex
+```
+
+# Persistent Volumes
+[persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/)
+[persistent volume deployment](https://kubernetes.io/docs/tasks/run-application/run-single-instance-stateful-application/)
