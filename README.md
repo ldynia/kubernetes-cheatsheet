@@ -186,12 +186,12 @@ FIELDS:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: busybox
+  name: alpine
   namespace: phenex
 spec:
   containers:
-  - name: busybox
-    image: busybox:1.28
+  - name: alpine
+    image: alpine
     command:
       - sleep
       - "3600"
@@ -200,7 +200,20 @@ spec:
 ```
 
 ```bash
-$ kubectl exec -it busybox /bin/sh
+$ kubectl get svc
+NAME    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)     AGE
+mongo   ClusterIP   None         <none>        27017/TCP   95m
+redis   ClusterIP   None         <none>        6379/TCP    95m
+
+$ kubectl exec -it alpine /bin/sh
+
+$ ping mongo
+$ nslookup mongo
+$ nslookup mongo.phenex
+
+$ ping redis
+$ nslookup reids
+$ nslookup reids.phenex
 ```
 
 ## Pod
