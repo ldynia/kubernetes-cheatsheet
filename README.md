@@ -482,6 +482,11 @@ $ kubectl label nodes web01 type-
 $ kubectl label nodes compute01 type-
 ```
 
+Roles
+```bash
+$ kubectl label nodes nebula-compute01 node-role.kubernetes.io/compute=compute
+```
+
 # Taints
 
 Show taints
