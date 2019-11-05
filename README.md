@@ -5,6 +5,22 @@
 * [kubectl cheatsheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
 * [kubernetes by example](http://kubernetesbyexample.com/)
 
+## Kubectl Autocompletion
+```bash
+$ echo $SHELL
+/bin/bash
+
+$ kubectl completion -h
+$ kubectl completion bash > ~/.kube/completion.bash.inc
+
+$ printf "
+# Kubectl shell completion
+source '$HOME/.kube/completion.bash.inc'
+" >> $HOME/.bash_profile
+
+$ source $HOME/.bash_profile
+```
+
 ```bash
 $ kubectl
 kubectl controls the Kubernetes cluster manager.
@@ -75,7 +91,7 @@ Use "kubectl <command> --help" for more information about a given command.
 Use "kubectl options" for a list of global command-line options (applies to all commands).
 ```
 
-Nodes info
+## Nodes info
 ```bash
 $ kubectl version
 $ kubectl get nodes -o json | jq .items[].status.nodeInfo
