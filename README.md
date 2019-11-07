@@ -485,7 +485,7 @@ compute01   Ready    <none>   6h15m   v1.15.0   beta.kubernetes.io/arch=amd64,be
 
 Label nodes
 ```bash
-$ kubectl label nodes web01 type=web
+$ kubectl label nodes web01 node=web
 node/web01 labeled
 
 $ kubectl label nodes compute01 type=compute
@@ -500,7 +500,14 @@ $ kubectl label nodes compute01 type-
 
 Roles
 ```bash
-$ kubectl label nodes nebula-compute01 node-role.kubernetes.io/compute=compute
+$ kubectl get nodes --show-labels
+$ kubectl label nodes nebula-compute01 node-role.kubernetes.io/compute=
+```
+
+Annotate resources
+```bash
+$ kubectl get nodes compute01 -o jsonpath='{.metadata.annotations}'
+$ kubectl annotate node compute01 compute-type=cpu
 ```
 
 # Taints
@@ -521,7 +528,6 @@ Delete taints
 $ kubectl taint node compute01 type-
 ```
 
-
 # Namespace
 ```bash
 $ kubectl config view
@@ -531,9 +537,10 @@ $ kubectl --namespace=vagrant run nginx --image=nginx
 $ kubectl --namespace=vagrant get pods
 
 $ kubectl config set-context vagrant --namespace=vagrant --user=kubernetes-admin
-$ kubectl config set contexts.vagrant.cluster kubernetes
 
+$ kubectl config set contexts.vagrant.cluster kubernetes
 $ kubectl config get-contexts
+
 $ kubectl config user-context vagrant
 ```
 
