@@ -525,12 +525,16 @@ $ kubectl taint node compute01 type-
 # Namespace
 ```bash
 $ kubectl config view
-$ kubectl create ns phenex
+$ kubectl create namespace vagrant
 
-$ kubectl --namespace=phenex run nginx --image=nginx
-$ kubectl --namespace=phenex get pods
+$ kubectl --namespace=vagrant run nginx --image=nginx
+$ kubectl --namespace=vagrant get pods
 
-$ kubectl config set-context $(kubectl config current-context) --namespace=phenex
+$ kubectl config set-context vagrant --namespace=vagrant --user=kubernetes-admin
+$ kubectl config set contexts.vagrant.cluster kubernetes
+
+$ kubectl config get-contexts
+$ kubectl config user-context vagrant
 ```
 
 # Persistent Volumes
