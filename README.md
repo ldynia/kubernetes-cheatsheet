@@ -234,9 +234,24 @@ $ nslookup reids.phenex
 
 ## Pod
 
+**YAML**
+```yamla
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-demo
+  labels:
+    app: nginx-demo
+spec:
+  containers:
+  - name: nginx-demo
+    image: nginx
+```
+
 Run pod in foreground.
 ```bash
-# Busybox image
+$ kubectl run nginx --image=nginx --generator=run-pod/v1 --dry-run -o yaml
+
 $ kubectl run alpine -it --image=alpine --restart=Never
 $ kubectl --namespace=default run alpine -it --image=alpine --restart=Never
 $ kubectl run alpine -it --image=alpine --restart=Never --command -- hostname -i
