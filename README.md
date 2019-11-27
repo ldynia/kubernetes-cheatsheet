@@ -342,10 +342,12 @@ $ kubectl get deployments nginx --output=yaml --export
 # Create service type of nodeport & clusterip
 $ kubectl create service nodeport nginx --tcp=80
 $ kubectl create service clusterip nginx --tcp=80
+$ kubectl create service clusterip redis --tcp=6379:6379 --dry-run -o yaml
 
 # Crete service using expose command
 $ kubectl expose deployment nginx --port=80 --type=NodePort
 $ kubectl expose deployment nginx --port=80 --type=ClusterIP
+$ kubectl expose pod redis --port=6379 --name redis-service --dry-run -o yaml
 
 $ kubectl get svc nginx --show-labels
 NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE     LABELS
@@ -479,7 +481,6 @@ spec:
           servicePort: 80
 ```
 
-
 ```bash
 $ kubectl apply -f deployment.yaml
 $ kubectl apply -f service.yaml
@@ -560,6 +561,157 @@ $ kubectl config get-contexts
 
 $ kubectl config user-context vagrant
 ```
+
+# DaemonSet
+
+Create DaemonSet
+```bash
+# Replace kind: Deployment with kind: DaemonSet and remove replicas: 1
+$ kubectl create deploy nginx --image=nginx --dry-run -o yaml > nginx-ds.yaml
+```
+
+# ConfigMaps
+
+```bash
+$ kubectl create configmap data-a --from-literal=ONE=uno --from-literal=TWO=dos --from-literal=THREE=tres
+
+$ echo -e "JEDEN=1\nDWA=2\nTRZY=3" > data.env
+$ kubectl create configmap data-b --from-env-file=data.env
+```
+
+Pod with envars loaded from ConfigMaps on three different ways
+```yamla
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: alpine-cm
+  name: alpine-cm
+spec:
+  containers:
+  - command:
+    - sleep
+    - "3600"
+    image: alpine
+    name: alpine-cm
+    env:
+    - name: EN
+      value: "1"
+    - name: TO
+      value: "2"
+    - name: ONE
+      valueFrom:
+        configMapKeyRef:
+          name: data-a
+          key: ONE
+    envFrom:
+    - configMapRef:
+        name: data-b
+```
+
+# Secrets
+
+```bash
+$ kubectl create secret generic secret-one --from-literal=KEY1=top --from-literal=KEY2=secret
+$ kubectl describe secret secret-one
+Name:         secret-one
+Namespace:    vagrant
+Labels:       <none>
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+KEY1:  3 bytes
+KEY2:  6 bytes
+
+$ echo -e "Secret File Content X" > x.file
+$ echo -e "Secret File Content Y" > y.file
+$ kubectl create secret generic secret-two --from-file=x.file
+$ kubectl create secret generic secret-three --from-file=x.file --from-file=y.file
+$ kubectl describe secrets secret-two
+Name:         secret-two
+Namespace:    vagrant
+Labels:       <none>
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+x.file:  20 bytes
+
+# Encode
+$ echo -n "admin" | base64
+YWRtaW4=
+$ echo -n "123abc" | base64
+MTIzYWJj
+
+# Decode
+$ echo 'YWRtaW4=' | base64 --decode
+$ echo 'MTIzYWJj' | base64 --decode
+```
+
+Secreat declaration
+```yamla
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-four
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: MTIzYWJj
+```
+
+```yamla
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: alpine-secret
+  name: alpine-secret
+spec:
+  containers:
+  - command:
+    - sleep
+    - "3600"
+    image: alpine
+    name: alpine-secret
+    env:
+    - name: USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: secret-four
+            key: username
+    - name: PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: secret-four
+            key: password
+    envFrom:
+    - secretRef:
+        name: secret-one
+    volumeMounts:
+    - name: xfile
+      mountPath: "/var/secret-xfile"
+      readOnly: true
+    - name: yfile
+      mountPath: "/var/secret-yfile"
+      readOnly: true
+  volumes:
+  - name: xfile
+    secret:
+      secretName: secret-two
+  - name: yfile
+    secret:
+      secretName: secret-two
+      items:
+      - key: x.file
+        path: yfile
+```
+
 
 # Persistent Volumes
 [persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/)

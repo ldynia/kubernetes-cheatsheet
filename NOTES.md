@@ -1,5 +1,15 @@
 # ETCD
 
+```bash
+$ kubectl get ds -n kube-system
+NAME                         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                 AGE
+kube-proxy                   3         3         3       3            3           beta.kubernetes.io/os=linux   18d
+
+$ kubectl get ds kube-proxy -o yaml --export
+``
+
+
+
 `/etc/kubernetes/manifests/etcd.yaml`
 
 ```bash
