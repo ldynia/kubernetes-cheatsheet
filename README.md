@@ -628,9 +628,10 @@ KEY2:  6 bytes
 
 $ echo -e "Secret File Content X" > x.file
 $ echo -e "Secret File Content Y" > y.file
-$ kubectl create secret generic secret-two --from-file=x.file
-$ kubectl create secret generic secret-three --from-file=x.file --from-file=y.file
-$ kubectl describe secrets secret-two
+$ kubectl create secret generic secret-x --from-file=x.file
+$ kubectl create secret generic secret-y --from-file=y.file
+$ kubectl create secret generic secret-xy --from-file=x.file --from-file=y.file
+$ kubectl describe secrets secret-xy
 Name:         secret-two
 Namespace:    vagrant
 Labels:       <none>
@@ -640,7 +641,8 @@ Type:  Opaque
 
 Data
 ====
-x.file:  20 bytes
+x.file:  22 bytes
+y.file:  22 bytes
 
 # Encode
 $ echo -n "admin" | base64
@@ -658,7 +660,7 @@ Secreat declaration
 apiVersion: v1
 kind: Secret
 metadata:
-  name: secret-four
+  name: secret-two
 type: Opaque
 data:
   username: YWRtaW4=
@@ -681,15 +683,15 @@ spec:
     name: alpine-secret
     env:
     - name: USERNAME
-        valueFrom:
-          secretKeyRef:
-            name: secret-four
-            key: username
+      valueFrom:
+        secretKeyRef:
+          name: secret-two
+          key: username
     - name: PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: secret-four
-            key: password
+      valueFrom:
+        secretKeyRef:
+          name: secret-two
+          key: password
     envFrom:
     - secretRef:
         name: secret-one
@@ -700,17 +702,60 @@ spec:
     - name: yfile
       mountPath: "/var/secret-yfile"
       readOnly: true
+    - name: xyfile
+      mountPath: "/var/secrets/"
+      readOnly: true
   volumes:
   - name: xfile
     secret:
-      secretName: secret-two
+      secretName: secret-x
   - name: yfile
     secret:
-      secretName: secret-two
+      secretName: secret-xy
       items:
-      - key: x.file
-        path: yfile
+      - key: y.file
+        path: yyfile
+  - name: xyfile
+    projected:
+      sources:
+      - secret:
+          name: secret-x
+      - secret:
+          name: secret-y
 ```
+
+# Cluster Upgrade
+
+**Master node**
+```bash
+$ apt update
+$ kubeadm upgrade planD
+$ kubectl cordon
+$ kubectl drain master --ignore-daemonsets
+$ apt install -y kubeadm=v1.12.0-00
+$ apt install -y kubelet=v1.12.0-00
+$ kubeadm upgrade apply v1.12.0
+$ kubectl uncordon master
+```
+
+**Worker node**
+```bash
+# On master ndoe
+$ kubectl cordon worker01
+$ kubectl drain worker01 --ignore-daemonsets
+
+# On worker ndoe
+$ apt update
+$ apt install -y kubeadm=v1.12.0-00
+$ apt install -y kubelet=v1.12.0-00
+$ kubeadm upgrade node config --kublete-version=v1.12.0
+
+# On master ndoe
+$ kubectl uncord worker01
+```
+
+# Backup and Restore
+[etcd](https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/practice-questions-answers/cluster-maintenance/backup-etcd/etcd-backup-and-restore.md)
 
 
 # Persistent Volumes
