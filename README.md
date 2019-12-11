@@ -277,7 +277,7 @@ $ kubectl attach -it alpine
 Label pods.
 ```bash
 # Add label
-$ kubectl label pod alpine created_by=ludd
+$ kubectl label pod alpine created_by=username
 $ kubectl get pods --show-labels
 
 # Remove label
@@ -761,3 +761,294 @@ $ kubectl uncord worker01
 # Persistent Volumes
 [persistent volume storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/)
 [persistent volume deployment](https://kubernetes.io/docs/tasks/run-application/run-single-instance-stateful-application/)
+
+# TSL
+
+[TLS](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/)
+[Certificates with OpenSSL](https://kubernetes.io/docs/concepts/cluster-administration/certificates/#openssl)
+
+```bash
+# Investigate API SERVER public key certificate
+$ openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
+$ openssl x509 -in /etc/kubernetes/pki/apiserver-kubelet-client.crt -text -noout
+$ openssl x509 -in /etc/kubernetes/pki/apiserver-etcd-client.crt -text -noout
+$ openssl x509 -in /etc/kubernetes/pki/front-proxy-ca.crt -text -noout
+$ openssl x509 -in /etc/kubernetes/pki/front-proxy-client.crt -text -noout
+```
+
+```bash
+# Check expiration of certificates
+$ kubeadm alpha certs check-expiration
+
+# Renew cert
+$ kubeadm alpha certs renew admin.conf
+$ kubeadm alpha certs renew all
+```
+
+## User Access
+
+Please store users certificates in `/etc/kubernetes/pki/users/`.
+
+## OpenSSL
+
+```bash
+$ openssl genrsa -out jane.key 2048
+$ openssl req -new -key jane.key -subj "/CN=jane" -out jane.csr
+$ base64 jane.key
+$ cat <<EOF | kubectl create -f -
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificateSigningRequest
+metadata:
+  name: jane
+spec:
+  groups:
+  - system:authenticated
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+  request: $(cat jane.csr | base64 | tr -d '\n')
+EOF
+
+$ kubectl get csr
+$ kubectl certificate approve jane
+```
+
+## CFSSL
+* [User CA](https://www.digitalocean.com/community/questions/kubernetes-how-do-i-access-the-ca-to-sign-a-new-user-certificate)
+* [download cfssl tools](https://pkg.cfssl.org/), [cfssl tutorial](https://coreos.com/os/docs/latest/generate-self-signed-certificates.html)
+
+Change CN to the ip of master server `hostname -i` in username.json file.
+```json
+{
+  "CN": "127.0.0.1",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [{
+      "O": "username",
+      "email": "username@email"
+  }]
+}
+
+$ kubectl get csr jane -o yaml
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificateSigningRequest
+metadata:
+  name: jane
+spec:
+  groups:
+  - system:masters
+  - system:authenticated
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+  username: kubernetes-admin
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZEQ0NBVHdDQVFBd0R6RU5NQXNHQTFVRUF3d0VhbUZ1WlRDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRApnZ0VQQURDQ0FRb0NnZ0VCQUxFTDljVVZMOXA2WlVrcVF1TXVPaTlvbXVmR203RzAxdXNTYVI5VkpRakUrdWkxCnVwQ1UvZm1TZDV2RzVFSm5hMVhsdXl3cDFWbUcvaFhSWjhFTFc2VU5rNUF0WGJPL2syMFVsVm9IbEVBcXVCVnIKV0c3WUtDU1BiT0o1WldQVFRMUGx4TWRpQ2crQkxoaE94cW1sUnBwWFVuTnB5QzVMWC96bEFVU1FwUmRqSDdHQwp2UWNJa2ROUCt2WmtwZzJUQ0E5eUpJa1AxZENPSElZSGg5cVp4dktIYnJOZGRKSzdET3FWRXRaYnlMNWlYWHhaCjl4Si9yVkdDcTNGN09aaVdQUHpHSHIzNC9VSjBLZGRIbEFLUVpjaXVwVXZQTVA4b0FlZFM0eTEyL013YVdydW8KWGhEeTJvQVNoZWc2dU1UNjF4N2lrSVJxSDFWV1JGcHJlRjVxanFFQ0F3RUFBYUFBTUEwR0NTcUdTSWIzRFFFQgpDd1VBQTRJQkFRQmhpV1FpM0FXWHV0MjErMzEvWFZQTEF2YktKV3pnSXVlOG9YVFVTek96My9rU1FFUW1XdVFtClRmVTZCL3dCeFhudVBvWGRGWjRjek82Y2ErTE8wRU1MbzFBWEl5NDZtTHpSOGRnZUM4WnhMcmZOWmJkclBWQkkKTitpNUNlQnVhQSt5MDByekJCcjR0Yit6NlhGWHRESFFKSDB0eks0NC9NUDJJUE0yeCtrZm4ya2x2bmJZK0JSOQpzRy9LeGN0M080YmJyZEZRZ2hPM2t4UkhGcDJyVlA5YkZNSWtmc1ZadjFySW93ci8rWTRSNzZMbVVYNTkyVmxyClFxQnVLQzJzdEFuVDFwTC9RV3NISlg4Sjh4cnBTS0FVdjlqYnc5SURBQ0V2TDY3c2pYSXlTVkMvclRjQXN4SEgKLzJBUzJhS1RPVHkwdHNaVTEzcTZxZFhZYTJOWEt2UXYKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==
+```
+
+```bash
+$ ./cfssl genkey username.json  | ./cfssljson -bare client
+
+$ cat <<EOF | kubectl create -f -
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificateSigningRequest
+metadata:
+  name: username
+spec:
+  groups:
+  - system:authenticated
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+  request: $(cat client.csr | base64 | tr -d '\n')
+EOF
+
+$ kubectl certificate approve username
+```
+
+# API Server
+
+Access API Server with admin certs.
+```bash
+$ kubectl config view --raw
+
+# admin certificates are obtained from ~/.kube/config file
+$ curl https://localhost:6443/ -k --key admin.key.decoded --cacert /etc/kubernetes/pki/ca.crt --cert /root/certs/admin.crt.decoded
+```
+Access API Server via `kubectl proxy`.
+```bash
+$ kubectl proxy
+$ curl http://localhost:8001/ -k
+```
+
+# RBAC
+
+## Roles
+```bash
+$ kubectl auth can-i list pods --all-namespaces
+$ kubectl auth can-i list pods --as dev-user
+$ kubectl auth can-i list pods --as dev-user --namespace production
+$ kubectl auth can-i create deployments
+
+# Roles
+$ kubectl create role developer --verb=create,list,delete --resource=pod --namespace=default
+
+# RolesBinding
+$ kubectl create rolebinding dev-user-binding --user=dev-user --namespace=default --role=developer
+```
+
+
+## ClusterRoles
+
+```bash
+$ kubectl create clusterrole node-admin --verb=get,list,watch,create,delete --resource=nodes
+$ kubectl create clusterrolebinding michelle-binding --clusterrole=node-admin --user=michelle
+```
+
+# Docker Registry
+
+[link](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
+
+```bash
+$ kubectl create secret docker-registry private-reg-cred --docker-username=dock_user --docker-password=dock_password --docker-server=myprivateregistry.com:5000 --docker-email=dock_user@myprivateregistry.com
+```
+
+```yamla
+apiVersion: v1
+kind: Pod
+metadata:
+  name: private-reg
+spec:
+  containers:
+  - name: private-reg-container
+    image: <your-private-image>
+  imagePullSecrets:
+  - name: private-reg-cred
+```
+
+# Security Context
+
+[link](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container)
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-demo-2
+spec:
+  securityContext:
+    runAsUser: 1000
+  containers:
+  - name: sec-ctx-demo-2
+    image: gcr.io/google-samples/node-hello:1.0
+    securityContext:
+      runAsUser: 2000
+      allowPrivilegeEscalation: false
+```
+
+# Network Policy
+
+[link](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+
+```yamla
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: internal-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      name: internal
+  policyTypes:
+  - Egress
+  - Ingress
+  ingress:
+  - {}
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          role: mysql
+    ports:
+    - protocol: TCP
+      port: 3306
+  - to:
+    - podSelector:
+        matchLabels:
+          role: payroll
+    ports:
+    - protocol: TCP
+      port: 8080
+```
+
+# Volumes, PVC
+
+[link](https://kubernetes.io/docs/concepts/storage/persistent-volumes)
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webapp
+spec:
+  restartPolicy: Never
+  containers:
+  - name: pv-recycler
+    image: kodekloud/event-symulator
+    volumeMounts:
+    - name: vol
+      mountPath: /log
+    - name: pvc-vol
+      mountPath: /log2
+  volumes:
+  - name: vol
+    hostPath:
+      path: /var/log/webapp
+  - name: pvc-vol
+    persistentVolumeClaim:
+      claimName: claim-log-1
+```
+
+Persistent Volume + Persistent Volume Claim
+
+```yamla
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-log
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /pv/log
+```
+
+```yamla
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-log-1
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Mi
+```
+
+# networking
+
+```bash
+$ ip link
+$ ip addr
+$ ip route
+$ route
+```
