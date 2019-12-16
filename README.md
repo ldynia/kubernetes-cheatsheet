@@ -1051,4 +1051,23 @@ $ ip link
 $ ip addr
 $ ip route
 $ route
+$ arp -a
+
+$ netstat -anp | grep etcd
+$ netstat -anp | grep scheduler
+
+$ nslookup
+$ dig
+
+# CNI PLugin
+$ ps aux | grep kubelet | grep cni
+
+# List available plugins
+$ ls -l /opt/cni/bin
+
+# List currently used cni plugin
+$ ls /etc/cni/net.d/
+
+# What binary executable file will be run by kubelet after a container and its associated namespace are created.
+$ cat /etc/cni/net.d/10-weave
 ```
