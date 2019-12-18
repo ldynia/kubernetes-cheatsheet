@@ -537,7 +537,7 @@ $ kubectl get nodes -o json | jq .items[].spec.taints
 Add taints
 ```bash
 $ kubectl taint node compute01 type=compute:NoSchedule
-$ kubectl taint node master node-role.kubernetes.io/master:NoSchedule
+$ kubectl taint node master node-role.kubernetes.io/master=:NoSchedule
 ```
 
 Delete taints
